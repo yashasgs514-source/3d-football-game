@@ -2,247 +2,474 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>3D Football Game</title>
+<meta name="viewport"
+content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+<title>3D Football Game V2</title>
+
 <style>
+* {
+  box-sizing: border-box;
+  touch-action: none;
+}
+
 body {
   margin: 0;
   overflow: hidden;
+  font-family: Arial, sans-serif;
   background: #111;
-  font-family: Arial;
 }
+
 #score {
   position: absolute;
   top: 15px;
   left: 50%;
   transform: translateX(-50%);
   color: white;
-  background: #111b;
-  padding: 12px 25px;
-  border-radius: 10px;
+  background: #111c;
+  padding: 12px 22px;
+  border-radius: 12px;
   font-size: 22px;
+  z-index: 5;
 }
-#controls {
+
+#help {
   position: absolute;
-  bottom: 25px;
-  left: 20px;
+  top: 65px;
+  width: 100%;
+  text-align: center;
   color: white;
-  font-size: 13px;
+  font-size: 12px;
+  pointer-events: none;
+}
+
+/* Mobile joystick */
+#joystick {
+  position: absolute;
+  bottom: 35px;
+  left: 25px;
+  width: 125px;
+  height: 125px;
+  border-radius: 50%;
+  background: #ffffff40;
+  border: 3px solid #ffffffaa;
+  z-index: 10;
+}
+
+#knob {
+  position: absolute;
+  width: 55px;
+  height: 55px;
+  left: 32px;
+  top: 32px;
+  border-radius: 50%;
+  background: #ffffffdd;
+  box-shadow: 0 3px 12px #0008;
+}
+
+#kick {
+  position: absolute;
+  bottom: 55px;
+  right: 30px;
+  width: 95px;
+  height: 95px;
+  border: 3px solid white;
+  border-radius: 50%;
+  background: #ff5722;
+  color: white;
+  font-size: 20px;
+  font-weight: bold;
+  z-index: 10;
+}
+
+#kick:active {
+  background: #d32f2f;
+  transform: scale(.94);
+}
+
+@media (min-width: 800px) {
+  #joystick {
+    width: 110px;
+    height: 110px;
+  }
 }
 </style>
 </head>
+
 <body>
 
-<div id="score">⚽ GOALS: <span id="goals">0</span></div>
-<div id="controls">
-  Move: WASD / Arrow Keys<br>
-  Kick: SPACE
+<div id="score">
+  ⚽ GOALS: <span id="goals">0</span>
 </div>
+
+<div id="help">
+  Move: Joystick / WASD | Kick: SPACE / KICK
+</div>
+
+<div id="joystick">
+  <div id="knob"></div>
+</div>
+
+<button id="kick">⚽ KICK</button>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
 <script>
+
+// SCENE
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x87ceeb);
 
 const camera = new THREE.PerspectiveCamera(
-  65, window.innerWidth/window.innerHeight, 0.1, 1000
+  65,
+  window.innerWidth / window.innerHeight,
+  0.1,
+  1000
 );
 
-const renderer = new THREE.WebGLRenderer({antialias:true});
+const renderer = new THREE.WebGLRenderer({
+  antialias: true
+});
+
 renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(
+  Math.min(window.devicePixelRatio, 2)
+);
 renderer.shadowMap.enabled = true;
 document.body.appendChild(renderer.domElement);
 
-// Lighting
-scene.add(new THREE.HemisphereLight(0xffffff,0x446644,2));
+// LIGHTS
+scene.add(
+  new THREE.HemisphereLight(0xffffff, 0x446644, 2)
+);
 
-const light = new THREE.DirectionalLight(0xffffff,2);
-light.position.set(5,15,10);
+const light = new THREE.DirectionalLight(0xffffff, 2);
+light.position.set(5, 15, 10);
 light.castShadow = true;
 scene.add(light);
 
-// Football ground
+// FOOTBALL GROUND
 const ground = new THREE.Mesh(
-  new THREE.PlaneGeometry(24,44),
-  new THREE.MeshStandardMaterial({color:0x188c36})
+  new THREE.PlaneGeometry(24, 44),
+  new THREE.MeshStandardMaterial({
+    color: 0x188c36
+  })
 );
-ground.rotation.x = -Math.PI/2;
+
+ground.rotation.x = -Math.PI / 2;
+ground.receiveShadow = true;
 scene.add(ground);
 
-// Field lines
-function line(x1,z1,x2,z2) {
+// FIELD LINES
+function makeLine(x1, z1, x2, z2) {
   const points = [
-    new THREE.Vector3(x1,0.03,z1),
-    new THREE.Vector3(x2,0.03,z2)
+    new THREE.Vector3(x1, 0.04, z1),
+    new THREE.Vector3(x2, 0.04, z2)
   ];
-  const geometry = new THREE.BufferGeometry().setFromPoints(points);
-  scene.add(new THREE.Line(
+
+  const geometry =
+    new THREE.BufferGeometry().setFromPoints(points);
+
+  const line = new THREE.Line(
     geometry,
-    new THREE.LineBasicMaterial({color:0xffffff})
-  ));
+    new THREE.LineBasicMaterial({
+      color: 0xffffff
+    })
+  );
+
+  scene.add(line);
 }
 
-line(-12,-22,12,-22);
-line(-12,22,12,22);
-line(-12,-22,-12,22);
-line(12,-22,12,22);
-line(-12,0,12,0);
+makeLine(-12,-22,12,-22);
+makeLine(-12,22,12,22);
+makeLine(-12,-22,-12,22);
+makeLine(12,-22,12,22);
+makeLine(-12,0,12,0);
 
-// Center circle
+// CENTER CIRCLE
 const circle = new THREE.Mesh(
   new THREE.RingGeometry(2.5,2.6,64),
-  new THREE.MeshBasicMaterial({color:0xffffff,side:THREE.DoubleSide})
+  new THREE.MeshBasicMaterial({
+    color: 0xffffff,
+    side: THREE.DoubleSide
+  })
 );
-circle.rotation.x = -Math.PI/2;
-circle.position.y = 0.04;
+
+circle.rotation.x = -Math.PI / 2;
+circle.position.y = 0.05;
 scene.add(circle);
 
-// Goal
-function createGoal() {
-  const material = new THREE.MeshStandardMaterial({color:0xffffff});
-  function post(x,y,z,h,r) {
-    const p = new THREE.Mesh(
-      new THREE.CylinderGeometry(r,r,h,12),material
-    );
-    p.position.set(x,y,z);
-    scene.add(p);
-  }
-  post(-4,1.5,-21,3,0.12);
-  post(4,1.5,-21,3,0.12);
-  post(0,3,-21,8,0.12);
-}
-createGoal();
+// GOALPOST
+const goalMaterial =
+  new THREE.MeshStandardMaterial({color:0xffffff});
 
-// Player
+function post(x,y,z,h) {
+  const p = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.12,0.12,h,12),
+    goalMaterial
+  );
+  p.position.set(x,y,z);
+  scene.add(p);
+}
+
+post(-4,1.5,-21,3);
+post(4,1.5,-21,3);
+
+const crossbar = new THREE.Mesh(
+  new THREE.BoxGeometry(8,0.15,0.15),
+  goalMaterial
+);
+
+crossbar.position.set(0,3,-21);
+scene.add(crossbar);
+
+// PLAYER
 const player = new THREE.Group();
 
 const body = new THREE.Mesh(
   new THREE.CylinderGeometry(0.45,0.5,1.4,16),
-  new THREE.MeshStandardMaterial({color:0x1565ff})
+  new THREE.MeshStandardMaterial({
+    color: 0x1565ff
+  })
 );
-body.position.y=1;
+
+body.position.y = 1;
+body.castShadow = true;
 player.add(body);
 
 const head = new THREE.Mesh(
   new THREE.SphereGeometry(0.35,16,16),
-  new THREE.MeshStandardMaterial({color:0xffcc99})
+  new THREE.MeshStandardMaterial({
+    color: 0xffcc99
+  })
 );
-head.position.y=1.95;
+
+head.position.y = 1.95;
 player.add(head);
 
 player.position.set(0,0,7);
 scene.add(player);
 
-// Football
+// FOOTBALL
 const ball = new THREE.Mesh(
   new THREE.SphereGeometry(0.4,24,24),
-  new THREE.MeshStandardMaterial({color:0xffffff})
+  new THREE.MeshStandardMaterial({
+    color: 0xffffff
+  })
 );
+
 ball.position.set(0,0.4,4);
 scene.add(ball);
 
-// Game variables
-let keys = {};
+// GAME VARIABLES
 let goals = 0;
-let velocity = new THREE.Vector3();
 
-document.addEventListener("keydown",e=>{
-  keys[e.code]=true;
-});
-document.addEventListener("keyup",e=>{
-  keys[e.code]=false;
+const velocity = new THREE.Vector3();
+
+const move = {
+  x: 0,
+  y: 0
+};
+
+let keys = {};
+
+// KEYBOARD CONTROLS
+document.addEventListener("keydown", e => {
+  keys[e.code] = true;
 });
 
-// Kick
+document.addEventListener("keyup", e => {
+  keys[e.code] = false;
+});
+
+// MOBILE JOYSTICK
+const joystick =
+  document.getElementById("joystick");
+
+const knob =
+  document.getElementById("knob");
+
+let joystickActive = false;
+let joystickPointer = null;
+
+function joystickMove(e) {
+  if (!joystickActive) return;
+
+  const rect = joystick.getBoundingClientRect();
+
+  const centerX = rect.left + rect.width / 2;
+  const centerY = rect.top + rect.height / 2;
+
+  let dx = e.clientX - centerX;
+  let dy = e.clientY - centerY;
+
+  const max = 36;
+  const distance = Math.hypot(dx,dy);
+
+  if (distance > max) {
+    dx = dx / distance * max;
+    dy = dy / distance * max;
+  }
+
+  knob.style.left =
+    (rect.width / 2 - 27.5 + dx) + "px";
+
+  knob.style.top =
+    (rect.height / 2 - 27.5 + dy) + "px";
+
+  move.x = dx / max;
+  move.y = dy / max;
+}
+
+function joystickEnd() {
+  joystickActive = false;
+  joystickPointer = null;
+
+  move.x = 0;
+  move.y = 0;
+
+  knob.style.left = "32px";
+  knob.style.top = "32px";
+}
+
+joystick.addEventListener("pointerdown", e => {
+  joystickActive = true;
+  joystickPointer = e.pointerId;
+  joystick.setPointerCapture(e.pointerId);
+  joystickMove(e);
+});
+
+joystick.addEventListener("pointermove", e => {
+  if (e.pointerId === joystickPointer) {
+    joystickMove(e);
+  }
+});
+
+joystick.addEventListener("pointerup", joystickEnd);
+joystick.addEventListener("pointercancel", joystickEnd);
+
+// KICK FUNCTION
 function kick() {
-  const distance = player.position.distanceTo(ball.position);
-  if(distance < 2.5) {
-    velocity.set(
-      (ball.position.x-player.position.x)*0.15,
-      0.12,
-      -0.8
-    );
+  const distance =
+    player.position.distanceTo(ball.position);
+
+  if (distance < 2.5) {
+    velocity.x =
+      (ball.position.x-player.position.x)*0.15;
+
+    velocity.z = -0.85;
+    velocity.y = 0.18;
   }
 }
 
-// Scoring
+document.getElementById("kick")
+  .addEventListener("pointerdown", e => {
+    e.preventDefault();
+    kick();
+  });
+
+// RESET BALL
 function resetBall() {
   ball.position.set(0,0.4,4);
   velocity.set(0,0,0);
 }
 
+// GAME LOOP
 function animate() {
   requestAnimationFrame(animate);
 
-  const speed=0.13;
+  const speed = 0.13;
 
-  if(keys["ArrowLeft"] || keys["KeyA"])
-    player.position.x-=speed;
-  if(keys["ArrowRight"] || keys["KeyD"])
-    player.position.x+=speed;
-  if(keys["ArrowUp"] || keys["KeyW"])
-    player.position.z-=speed;
-  if(keys["ArrowDown"] || keys["KeyS"])
-    player.position.z+=speed;
+  let dx = move.x;
+  let dz = move.y;
 
-  player.position.x=THREE.MathUtils.clamp(player.position.x,-11,11);
-  player.position.z=THREE.MathUtils.clamp(player.position.z,-19,19);
+  if (keys["ArrowLeft"] || keys["KeyA"]) dx -= 1;
+  if (keys["ArrowRight"] || keys["KeyD"]) dx += 1;
+  if (keys["ArrowUp"] || keys["KeyW"]) dz -= 1;
+  if (keys["ArrowDown"] || keys["KeyS"]) dz += 1;
 
-  if(keys["Space"]) {
+  player.position.x += dx * speed;
+  player.position.z += dz * speed;
+
+  player.position.x =
+    THREE.MathUtils.clamp(player.position.x,-11,11);
+
+  player.position.z =
+    THREE.MathUtils.clamp(player.position.z,-19,19);
+
+  if (keys["Space"]) {
     kick();
-    keys["Space"]=false;
+    keys["Space"] = false;
   }
 
-  // Ball physics
+  // BALL PHYSICS
   ball.position.add(velocity);
+
   velocity.multiplyScalar(0.985);
 
-  if(ball.position.y>0.4) {
-    velocity.y-=0.015;
-  }
-  if(ball.position.y<0.4) {
-    ball.position.y=0.4;
-    velocity.y=Math.abs(velocity.y)*0.4;
+  if (ball.position.y > 0.4) {
+    velocity.y -= 0.015;
   }
 
-  // Field boundaries
-  if(Math.abs(ball.position.x)>11)
-    velocity.x*=-0.7;
-  if(Math.abs(ball.position.z)>21)
-    velocity.z*=-0.7;
+  if (ball.position.y < 0.4) {
+    ball.position.y = 0.4;
+    velocity.y = Math.abs(velocity.y) * 0.4;
+  }
 
-  // Goal detection
-  if(ball.position.z < -20 &&
-     Math.abs(ball.position.x)<3.7 &&
-     ball.position.y<3) {
+  // FIELD BOUNDARIES
+  if (Math.abs(ball.position.x) > 11) {
+    velocity.x *= -0.7;
+  }
+
+  if (Math.abs(ball.position.z) > 21) {
+    velocity.z *= -0.7;
+  }
+
+  // GOAL DETECTION
+  if (
+    ball.position.z < -20 &&
+    Math.abs(ball.position.x) < 3.7 &&
+    ball.position.y < 3
+  ) {
     goals++;
-    document.getElementById("goals").textContent=goals;
+
+    document.getElementById("goals")
+      .textContent = goals;
+
     resetBall();
   }
 
-  // Camera follows player
+  // FOLLOW CAMERA
   camera.position.set(
     player.position.x,
     9,
-    player.position.z+12
+    player.position.z + 12
   );
+
   camera.lookAt(
     player.position.x,
     0,
-    player.position.z-3
+    player.position.z - 3
   );
 
   renderer.render(scene,camera);
 }
 
-window.addEventListener("resize",()=>{
-  camera.aspect=window.innerWidth/window.innerHeight;
+// RESIZE
+window.addEventListener("resize", () => {
+  camera.aspect =
+    window.innerWidth / window.innerHeight;
+
   camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth,window.innerHeight);
+
+  renderer.setSize(
+    window.innerWidth,
+    window.innerHeight
+  );
 });
 
 animate();
+
 </script>
 </body>
 </html>
