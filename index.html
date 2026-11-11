@@ -133,8 +133,22 @@ body {
   color: white !important;
   border-radius: 50% !important;
   border: 3px solid white !important;
-  font-size: 20px !important;
+  font-size: 20px !important;  
 }
+  #timer {
+  position: fixed;
+  top: 65px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: white;
+  background: #111b;
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-size: 20px;
+  font-weight: bold;
+  z-index: 10000;
+}
+  
 </style>
 </head>
 
@@ -143,6 +157,9 @@ body {
 <div id="score">
   ⚽ GOALS: <span id="goals">0</span>
 </div>
+  <div id="timer">
+    TIME: 90
+  </div>
 
 <div id="help">
   Move: Joystick / WASD | Kick: SPACE / KICK
@@ -427,11 +444,34 @@ function resetBall() {
   ball.position.set(0,0.4,4);
   velocity.set(0,0,0);
 }
+  // TIMER VARIABLES
+let timeLeft = 90;
+let lastSecond = Date.now();
 
+function updateTimer() {
+  if (timeLeft > 0 &&
+      Date.now() - lastSecond >= 1000) {
+
+    timeLeft--;
+    lastSecond = Date.now();
+
+    document.getElementById("timer").textContent =
+      "TIME: " + timeLeft;
+  }
+
+  if (timeLeft === 0) {
+    document.getElementById("timer").textContent =
+      "TIME UP!";
+  }
+}
 // GAME LOOP
 function animate() {
+  
   requestAnimationFrame(animate);
+updateTimer();
 
+  // Keep your existing game code here
+}
   const speed = 0.13;
 
   let dx = move.x;
