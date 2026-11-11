@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>3D Football Game</title>
+<style>
+body {
+  margin: 0;
+  overflow: hidden;
+  background: #111;
+  font-family: Arial;
+}
+#score {
+  position: absolute;
+  top: 15px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: white;
+  background: #111b;
+  padding: 12px 25px;
+  border-radius: 10px;
+  font-size: 22px;
+}
+#controls {
+  position: absolute;
+  bottom: 25px;
+  left: 20px;
+  color: white;
+  font-size: 13px;
+}
+</style>
+</head>
+<body>
+
+<div id="score">⚽ GOALS: <span id="goals">0</span></div>
+<div id="controls">
+  Move: WASD / Arrow Keys<br>
+  Kick: SPACE
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+<script>
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x87ceeb);
+
+const camera = new THREE.PerspectiveCamera(
+  65, window.innerWidth/window.innerHeight, 0.1, 1000
+);
+
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.shadowMap.enabled = true;
+document.body.appendChild(renderer.domElement);
+
+// Lighting
+scene.add(new THREE.HemisphereLight(0xffffff,0x446644,2));
+
+const light = new THREE.DirectionalLight(0xffffff,2);
+light.position.set(5,15,10);
+light.castShadow = true;
+scene.add(light);
+
+// Football ground
+const ground = new THREE.Mesh(
+  new THREE.PlaneGeometry(24,44),
+  new THREE.MeshStandardMaterial({color:0x188c36})
+);
+ground.rotation.x = -Math.PI/2;
+scene.add(ground);
+
+// Field lines
+function line(x1,z1,x2,z2) {
+  const points = [
+    new THREE.Vector3(x1,0.03,z1),
+    new THREE.Vector3(x2,0.03,z2)
+  ];
+  const geometry = new THREE.BufferGeometry().setFromPoints(points);
+  scene.add(new THREE.Line(
+    geometry,
+    new THREE.LineBasicMaterial({color:0xffffff})
+  ));
+}
+
+line(-12,-22,12,-22);
+line(-12,22,12,22);
+line(-12,-22,-12,22);
+line(12,-22,12,22);
+line(-12,0,12,0);
+
+// Center circle
+const circle = new THREE.Mesh(
+  new THREE.RingGeometry(2.5,2.6,64),
+  new THREE.MeshBasicMaterial({color:0xffffff,side:THREE.DoubleSide})
+);
+circle.rotation.x = -Math.PI/2;
+circle.position.y = 0.04;
+scene.add(circle);
+
+// Goal
+function createGoal() {
+  const material = new THREE.MeshStandardMaterial({color:0xffffff});
+  function post(x,y,z,h,r) {
+    const p = new THREE.Mesh(
+      new THREE.CylinderGeometry(r,r,h,12),material
+    );
+    p.position.set(x,y,z);
+    scene.add(p);
+  }
+  post(-4,1.5,-21,3,0.12);
+  post(4,1.5,-21,3,0.12);
+  post(0,3,-21,8,0.12);
+}
+createGoal();
+
+// Player
+const player = new THREE.Group();
+
+const body = new THREE.Mesh(
+  new THREE.CylinderGeometry(0.45,0.5,1.4,16),
+  new THREE.MeshStandardMaterial({color:0x1565ff})
+);
+body.position.y=1;
+player.add(body);
+
+const head = new THREE.Mesh(
+  new THREE.SphereGeometry(0.35,16,16),
+  new THREE.MeshStandardMaterial({color:0xffcc99})
+);
+head.position.y=1.95;
+player.add(head);
+
+player.position.set(0,0,7);
+scene.add(player);
+
+// Football
+const ball = new THREE.Mesh(
+  new THREE.SphereGeometry(0.4,24,24),
+  new THREE.MeshStandardMaterial({color:0xffffff})
+);
+ball.position.set(0,0.4,4);
+scene.add(ball);
+
+// Game variables
+let keys = {};
+let goals = 0;
+let velocity = new THREE.Vector3();
+
+document.addEventListener("keydown",e=>{
+  keys[e.code]=true;
+});
+document.addEventListener("keyup",e=>{
+  keys[e.code]=false;
+});
+
+// Kick
+function kick() {
+  const distance = player.position.distanceTo(ball.position);
+  if(distance < 2.5) {
+    velocity.set(
+      (ball.position.x-player.position.x)*0.15,
+      0.12,
+      -0.8
+    );
+  }
+}
+
+// Scoring
+function resetBall() {
+  ball.position.set(0,0.4,4);
+  velocity.set(0,0,0);
+}
+
+function animate() {
+  requestAnimationFrame(animate);
+
+  const speed=0.13;
+
+  if(keys["ArrowLeft"] || keys["KeyA"])
+    player.position.x-=speed;
+  if(keys["ArrowRight"] || keys["KeyD"])
+    player.position.x+=speed;
+  if(keys["ArrowUp"] || keys["KeyW"])
+    player.position.z-=speed;
+  if(keys["ArrowDown"] || keys["KeyS"])
+    player.position.z+=speed;
+
+  player.position.x=THREE.MathUtils.clamp(player.position.x,-11,11);
+  player.position.z=THREE.MathUtils.clamp(player.position.z,-19,19);
+
+  if(keys["Space"]) {
+    kick();
+    keys["Space"]=false;
+  }
+
+  // Ball physics
+  ball.position.add(velocity);
+  velocity.multiplyScalar(0.985);
+
+  if(ball.position.y>0.4) {
+    velocity.y-=0.015;
+  }
+  if(ball.position.y<0.4) {
+    ball.position.y=0.4;
+    velocity.y=Math.abs(velocity.y)*0.4;
+  }
+
+  // Field boundaries
+  if(Math.abs(ball.position.x)>11)
+    velocity.x*=-0.7;
+  if(Math.abs(ball.position.z)>21)
+    velocity.z*=-0.7;
+
+  // Goal detection
+  if(ball.position.z < -20 &&
+     Math.abs(ball.position.x)<3.7 &&
+     ball.position.y<3) {
+    goals++;
+    document.getElementById("goals").textContent=goals;
+    resetBall();
+  }
+
+  // Camera follows player
+  camera.position.set(
+    player.position.x,
+    9,
+    player.position.z+12
+  );
+  camera.lookAt(
+    player.position.x,
+    0,
+    player.position.z-3
+  );
+
+  renderer.render(scene,camera);
+}
+
+window.addEventListener("resize",()=>{
+  camera.aspect=window.innerWidth/window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth,window.innerHeight);
+});
+
+animate();
+</script>
+</body>
+</html>
