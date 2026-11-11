@@ -391,7 +391,19 @@ joystick.addEventListener("pointerup", joystickEnd);
 joystick.addEventListener("pointercancel", joystickEnd);
 
 // KICK FUNCTION
-function kick() {
+function kick() {  
+  const distance =    
+    player.position.distanceTo(ball.position);   
+  
+  if (distance < 3.5) {    
+    velocity.x =       
+      (ball.position.x - player.position.x) * 0.15;     
+    
+    velocity.z = -1.2;    
+    velocity.y = 0.25;   
+  } 
+}
+  {
   const distance =
     player.position.distanceTo(ball.position);
 
